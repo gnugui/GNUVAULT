@@ -142,6 +142,14 @@ class GnuVault:
         captive — extraction is a guaranteed exit, not a backdoor."""
         return derive_key(passphrase, _b64d(bundle.salt))
 
+    def rekey(self, bundle: SealedBundle, old_passphrase: str, new_passphrase: str) -> SealedBundle:
+        """Rotate the passphrase: open with the old, re-seal under the new with
+        a fresh salt + nonce. The plaintext is never written to disk and the new
+        bundle shares nothing derivable with the old. Fails closed on a wrong
+        old passphrase (you cannot rekey what you cannot open)."""
+        secret = self.open(bundle, old_passphrase)
+        return self.seal(secret, new_passphrase)
+
 
 def _selftest() -> bool:
     v = GnuVault()

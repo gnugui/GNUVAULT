@@ -129,6 +129,20 @@ class Mausoleum:
             return base64.b64encode(key).decode("ascii")
         return key.hex()
 
+    def rekey(self, name: str, old_passphrase: str, new_passphrase: str) -> TombInfo:
+        """Rotate a tomb's passphrase in place (atomic). Fails closed on a wrong
+        old passphrase. The secret is never written to disk in the clear."""
+        path = self._tomb_path(name)
+        bundle = self._load(name)
+        new_bundle = self._v.rekey(bundle, old_passphrase, new_passphrase)
+        envelope = json.loads(new_bundle.to_json())
+        envelope["_sealed_at"] = time.time()
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(envelope, indent=2))
+        os.replace(tmp, path)
+        return TombInfo(name=name, path=str(path), kdf=new_bundle.kdf,
+                        bytes=path.stat().st_size, sealed_at=envelope["_sealed_at"])
+
     # ── custody housekeeping ───────────────────────────────────────
     def forget(self, name: str) -> bool:
         """Remove a tomb from the mausoleum (does not shred external copies)."""

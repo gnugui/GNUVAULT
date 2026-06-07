@@ -7,6 +7,7 @@
 **`gnuvault` · `mausoleum` · GNUGUI** — the build-your-own reference implementation
 of the [**cypherpunk2048**](https://github.com/cypherpunk2048) Operational Transparency standard.
 
+[![version](https://img.shields.io/badge/version-0.0.2-d4af37.svg)](CHANGELOG.md)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-d4af37.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GNU](https://img.shields.io/badge/GNU-respect%20in%20the%20highest%20regard-36966e.svg)](https://www.gnu.org/)
 [![cypherpunk2048](https://img.shields.io/badge/standard-cypherpunk2048-0a0a12.svg)](https://github.com/cypherpunk2048)
@@ -79,9 +80,15 @@ auditable file you can read in a single sitting.
 
 ```bash
 pip install cryptography
-python3 gnuvault.py      # GNUVAULT selftest — scrypt + AES-256-GCM; key extractable
-python3 mausoleum.py     # multi-tomb + key export (the sovereign exit)
-python3 gnugui.py        # the GUI (use --headless on a server)
+python3 gnuvault.py        # selftest — scrypt + AES-256-GCM; key extractable
+python3 test_gnuvault.py   # the test suite (verify the claims yourself)
+
+# the CLI (passphrases prompted, never echoed, never on argv)
+python3 cli.py inter   my-secret     # seal a new tomb
+python3 cli.py list
+python3 cli.py rekey   my-secret     # rotate the passphrase in place
+python3 cli.py export  my-secret     # extract the key → sovereign
+python3 cli.py gui                   # launch GNUGUI
 ```
 
 ```python
@@ -115,6 +122,12 @@ use GNUGUI in its public-facing client software.**
 - **BANKON** — [bankon.pythai.net](https://bankon.pythai.net) (a doorway)
 - **GNUGUI org** — [github.com/gnugui](https://github.com/gnugui)
 - **Carried everywhere by `openBDK`** — [OpenBSD](https://www.openbsd.org/) + [Alpine](https://alpinelinux.org/) (BSD + GPLv3, all handheld devices)
+
+## Releases
+
+GNUVAULT follows the only sensible schedule for free software: **the next release
+ships when ready** — not on a calendar, but when it is correct, auditable, and
+worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.2**.
 
 ## License
 
