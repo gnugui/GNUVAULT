@@ -1,0 +1,28 @@
+# GNUVAULT — standalone, deployable on its own. Destined for github.com/gnugui.
+# SPDX-License-Identifier: GPL-3.0-or-later
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gnuvault"
+version = "0.1.0"
+description = "GNUVAULT — a transparent, client-side vault suite (gnuvault + mausoleum + GNUGUI). The build-your-own example for the cypherpunk2048 Operational Transparency standard."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "cypherpunk2048 / BANKON" }]
+keywords = ["vault", "cypherpunk2048", "operational-transparency", "tomb", "gnugui", "sovereign-key", "gpl"]
+dependencies = ["cryptography>=41"]   # stdlib + one audited primitive set
+
+[project.urls]
+Homepage = "https://github.com/gnugui"
+Standard = "https://github.com/cypherpunk2048"
+
+[project.scripts]
+gnuvault = "gnuvault:_selftest"
+mausoleum = "mausoleum:_selftest"
+gnugui = "gnugui:main"
+
+[tool.setuptools]
+py-modules = ["gnuvault", "mausoleum", "gnugui"]
