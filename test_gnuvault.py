@@ -214,6 +214,43 @@ def test_detect_removable_mounts_is_a_list():
     assert isinstance(Mausoleum.detect_removable_mounts(), list)   # never raises
 
 
+def test_fuzz_roundtrip_random():
+    import os as _os, random as _r
+    v = GnuVault()
+    for _ in range(60):
+        secret = _os.urandom(_r.randint(0, 200))
+        pw = _os.urandom(_r.randint(1, 40)).hex()
+        b = v.seal(secret, pw)
+        assert v.open(SealedBundle.from_json(b.to_json()), pw) == secret
+
+
+def test_tamper_any_field_fails_closed():
+    import base64 as _b64
+    v = GnuVault()
+    b = v.seal("integrity matters", "pw")
+    for field in ("ct", "nonce", "salt"):
+        raw = bytearray(_b64.b64decode(getattr(b, field)))
+        if not raw:
+            continue
+        raw[0] ^= 0x01                                   # flip one bit
+        fields = {"kdf": b.kdf, "salt": b.salt, "nonce": b.nonce, "ct": b.ct}
+        fields[field] = _b64.b64encode(bytes(raw)).decode()
+        tampered = SealedBundle(**fields)
+        try:
+            v.open(tampered, "pw"); raise AssertionError(f"tamper of {field} not caught")
+        except Exception as e:
+            if isinstance(e, AssertionError):
+                raise
+
+
+def test_wipe_zeroes_bytearray():
+    from gnuvault import wipe
+    buf = bytearray(b"\xff" * 32)
+    wipe(buf)
+    assert buf == bytearray(32)
+    wipe(b"immutable")          # must not raise on immutables
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

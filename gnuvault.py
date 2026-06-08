@@ -107,6 +107,18 @@ def key_from_pem(pem: str) -> bytes:
     return base64.b64decode(body)
 
 
+def wipe(buf) -> None:
+    """Best-effort zeroization of a MUTABLE buffer (``bytearray``). Python cannot
+    scrub immutable ``bytes``/``str`` (they may be copied or interned), so hold
+    extracted keys in a ``bytearray`` if you intend to wipe them. See SECURITY.md
+    — treat in-memory secrets as recoverable by a privileged local attacker."""
+    try:
+        for i in range(len(buf)):
+            buf[i] = 0
+    except (TypeError, IndexError):
+        pass  # immutable / unsupported — nothing we can honestly do
+
+
 @dataclass(frozen=True)
 class SealedBundle:
     """The entire on-disk/at-rest representation. No hidden fields."""

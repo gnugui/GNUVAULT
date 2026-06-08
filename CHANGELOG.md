@@ -3,6 +3,18 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.0.8
+
+- **[`SECURITY.md`](SECURITY.md)** — full threat model: the cryptography, what
+  GNUVAULT protects against, the **honest limits** (compromised host, weak
+  passphrase, memory forensics/swap, no constant-time guarantee in Python), and
+  responsible-disclosure instructions (private advisory + review invitation).
+- **Fuzz + tamper tests** — randomized seal/open round-trips and a test that
+  flipping any byte of ciphertext/nonce/salt fails closed.
+- **`gnuvault.wipe(bytearray)`** — best-effort key zeroization, honestly
+  documented (Python cannot scrub immutable `bytes`/`str`).
+- Test suite grows to 20.
+
 ## v0.0.7
 
 - **Packaging & distribution.** Installs cleanly with `pipx install
