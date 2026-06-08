@@ -156,6 +156,41 @@ def test_legacy_pre_v004_tomb_opens():
         assert m.exhume("legacy", "pw2").decode() == "legacy secret"
 
 
+def test_airgap_signature_custody_roundtrip():
+    import airgap as ag
+    priv, pub = ag.ed25519_keygen()
+    ch = ag.airgap_challenge("vault-1")
+    sig = ag.ed25519_sign(priv, ch)
+    assert ag.ed25519_verify(pub, sig, ch)
+    v = GnuVault()
+    ov = ag.overseer_from_signature(sig, ch)
+    b = v.seal_with(ov, "airgapped secret")
+    # reproduce custody from the key alone (sign again → same signature)
+    ov2 = ag.overseer_from_signature(ag.ed25519_sign(priv, ch), ch)
+    assert v.open_with(ov2, b).decode() == "airgapped secret"
+
+
+def test_pem_key_roundtrip():
+    from gnuvault import key_to_pem, key_from_pem
+    import os as _os
+    k = _os.urandom(32)
+    pem = key_to_pem(k)
+    assert "BEGIN GNUVAULT KEY" in pem and key_from_pem(pem) == k
+
+
+def test_export_keystore_is_portable():
+    with tempfile.TemporaryDirectory() as d:
+        m = Mausoleum(d)
+        m.inter("acct", "portable secret", "host-pw")
+        ks = m.export_keystore("acct", "host-pw", "export-pw")
+        # open the keystore anywhere, with only the export passphrase
+        assert GnuVault().open(SealedBundle.from_json(ks), "export-pw").decode() == "portable secret"
+        # pem export is well-formed
+        from gnuvault import key_from_pem
+        pem = m.export_key("acct", "host-pw", fmt="pem")
+        assert len(key_from_pem(pem)) == 32
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

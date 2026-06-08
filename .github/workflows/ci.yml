@@ -25,5 +25,6 @@ jobs:
           python gnuvault.py
           python mausoleum.py
           python gnugui.py --headless
+          python airgap.py
       - name: Test suite
         run: python test_gnuvault.py

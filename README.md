@@ -7,7 +7,7 @@
 **`gnuvault` · `mausoleum` · GNUGUI** — the build-your-own reference implementation
 of the [**cypherpunk2048**](https://github.com/cypherpunk2048) Operational Transparency standard.
 
-[![version](https://img.shields.io/badge/version-0.0.4-d4af37.svg)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.0.5-d4af37.svg)](CHANGELOG.md)
 [![ci](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml/badge.svg)](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-d4af37.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GNU](https://img.shields.io/badge/GNU-respect%20in%20the%20highest%20regard-36966e.svg)](https://www.gnu.org/)
@@ -71,6 +71,7 @@ population. GNUVAULT carries that posture to the vault.
 | [`gnuvault.py`](gnuvault.py) | one **tomb** — `scrypt` + `AES-256-GCM`; `seal` · `open` · **`extract_key`** |
 | [`mausoleum.py`](mausoleum.py) | the **Mausoleum** — many tombs; `inter` · `exhume` · **`export_key`** (the sovereign exit) · `backup` to USB |
 | [`overseer.py`](overseer.py) | **who may derive the key** — `Passphrase` / `Keyfile` / `WalletSignature` overseers (custody by passphrase, key file, or a wallet signature) |
+| [`airgap.py`](airgap.py) | **offline custody** — sign a challenge on an airgapped machine / hardware wallet; the signing key never touches the network |
 | [`gnugui.py`](gnugui.py) | **GNUGUI** — the public-facing client; a pseudo-3D, cypherpunk2048 vault view in pure-stdlib Tkinter |
 
 The Tomb suite, resurrected and made plural: a *tomb* is one sealed bundle; a
@@ -129,7 +130,7 @@ use GNUGUI in its public-facing client software.**
 
 GNUVAULT follows the only sensible schedule for free software: **the next release
 ships when ready** — not on a calendar, but when it is correct, auditable, and
-worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.4**, on the
+worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.5**, on the
 road to v1.0.0.
 
 ## License

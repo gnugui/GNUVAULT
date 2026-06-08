@@ -30,7 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mausoleum import Mausoleum  # noqa: E402
 
-VERSION = "0.0.4"
+VERSION = "0.0.5"
 
 
 def _m(args) -> Mausoleum:
@@ -65,14 +65,28 @@ def cmd_exhume(args) -> int:
 
 
 def cmd_export(args) -> int:
+    fmt = "pem" if args.pem else ("base64" if args.b64 else "hex")
     try:
-        key = _m(args).export_key(args.name, getpass("passphrase: "),
-                                  fmt="base64" if args.b64 else "hex")
+        key = _m(args).export_key(args.name, getpass("passphrase: "), fmt=fmt)
     except Exception:
         print("wrong passphrase (failed closed)", file=sys.stderr)
         return 1
     print(key)
     print("# the key has left the running system — it is sovereign now.", file=sys.stderr)
+    return 0
+
+
+def cmd_airgap(args) -> int:
+    import airgap as ag
+    if args.what == "challenge":
+        print(ag.airgap_challenge(args.nonce or ""))
+    elif args.what == "keygen":
+        priv, pub = ag.ed25519_keygen()
+        print("private (keep offline): " + priv)
+        print("public:                 " + pub)
+    elif args.what == "sign":
+        priv = getpass("ed25519 private (hex): ")
+        print(ag.ed25519_sign(priv, ag.airgap_challenge(args.nonce or "")))
     return 0
 
 
@@ -130,7 +144,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("list").set_defaults(fn=cmd_list)
     for name, fn in [("inter", cmd_inter), ("exhume", cmd_exhume), ("rekey", cmd_rekey), ("forget", cmd_forget)]:
         sp = sub.add_parser(name); sp.add_argument("name"); sp.set_defaults(fn=fn)
-    sp = sub.add_parser("export"); sp.add_argument("name"); sp.add_argument("--b64", action="store_true"); sp.set_defaults(fn=cmd_export)
+    sp = sub.add_parser("export"); sp.add_argument("name"); sp.add_argument("--b64", action="store_true"); sp.add_argument("--pem", action="store_true"); sp.set_defaults(fn=cmd_export)
+    sp = sub.add_parser("airgap"); sp.add_argument("what", choices=["challenge", "keygen", "sign"]); sp.add_argument("--nonce", default=""); sp.set_defaults(fn=cmd_airgap)
     sp = sub.add_parser("backup"); sp.add_argument("dest"); sp.set_defaults(fn=cmd_backup)
     sp = sub.add_parser("import"); sp.add_argument("path"); sp.set_defaults(fn=cmd_import)
     sub.add_parser("gui").set_defaults(fn=cmd_gui)

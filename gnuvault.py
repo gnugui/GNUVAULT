@@ -90,6 +90,23 @@ def derive_key(passphrase: str, salt: bytes) -> bytes:
     return derive_key_material(passphrase.encode("utf-8"), salt)
 
 
+_PEM_BEGIN = "-----BEGIN GNUVAULT KEY-----"
+_PEM_END = "-----END GNUVAULT KEY-----"
+
+
+def key_to_pem(key: bytes) -> str:
+    """Armor a raw key as a PEM block for cold storage / interchange."""
+    b = base64.b64encode(key).decode("ascii")
+    lines = [b[i:i + 64] for i in range(0, len(b), 64)]
+    return _PEM_BEGIN + "\n" + "\n".join(lines) + "\n" + _PEM_END + "\n"
+
+
+def key_from_pem(pem: str) -> bytes:
+    """Read a key back from a GNUVAULT PEM block."""
+    body = "".join(ln.strip() for ln in pem.splitlines() if ln and not ln.startswith("-----"))
+    return base64.b64decode(body)
+
+
 @dataclass(frozen=True)
 class SealedBundle:
     """The entire on-disk/at-rest representation. No hidden fields."""

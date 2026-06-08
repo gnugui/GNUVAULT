@@ -3,6 +3,20 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.0.5
+
+- **Airgap custody** (`airgap.py`): sign a fixed public challenge on an offline
+  machine / hardware wallet, bring the *signature* back, and
+  `overseer_from_signature()` derives the vault key — the signing key never
+  touches the network and the signature is never stored. Includes a
+  self-contained ed25519 keygen/sign/verify (deterministic → reproducible
+  custody) for those building their own software signer.
+- **Export formats:** `export_key(fmt="pem")` and `export_keystore()` — a
+  portable, re-encrypted keystore you can open anywhere with only an export
+  passphrase. `key_to_pem` / `key_from_pem` helpers in `gnuvault.py`.
+- CLI: `gnuvault export --pem`, `gnuvault airgap challenge|keygen|sign`.
+- Test suite grows to 15.
+
 ## v0.0.4
 
 - **AAD bound to tomb identity.** The Mausoleum now seals each tomb with AES-GCM

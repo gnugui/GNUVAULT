@@ -150,12 +150,23 @@ class Mausoleum:
 
     def export_key(self, name: str, passphrase: str, *, fmt: str = "hex") -> str:
         """Export the extracted key for cold storage / your own build.
-        fmt ∈ {hex, base64}. The key leaves the running system, sovereign."""
+        fmt ∈ {hex, base64, pem}. The key leaves the running system, sovereign."""
         import base64
+        from gnuvault import key_to_pem
         key = self.extract_key(name, passphrase)
+        if fmt == "pem":
+            return key_to_pem(key)
         if fmt == "base64":
             return base64.b64encode(key).decode("ascii")
         return key.hex()
+
+    def export_keystore(self, name: str, passphrase: str, export_passphrase: str) -> str:
+        """Export a tomb's *secret* as a portable, re-encrypted keystore (a
+        GNUVAULT bundle sealed under ``export_passphrase``). Move it anywhere;
+        open it with ``GnuVault().open(SealedBundle.from_json(text), export_pw)``.
+        The on-host passphrase never leaves; the secret is never exposed."""
+        secret = self._open_secret(name, passphrase)
+        return self._v.seal(secret, export_passphrase).to_json()
 
     def rekey(self, name: str, old_passphrase: str, new_passphrase: str) -> TombInfo:
         """Rotate a tomb's passphrase in place (atomic). Fails closed on a wrong
