@@ -3,6 +3,15 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.0.7
+
+- **Packaging & distribution.** Installs cleanly with `pipx install
+  git+https://github.com/gnugui/GNUVAULT` (or `pip install .`), putting the
+  `gnuvault` and `gnugui` console scripts on your PATH. `python -m build`
+  produces a verified sdist + wheel. Added PyPI classifiers, project URLs
+  (Repository/Changelog/Issues), `MANIFEST.in`, and broader keywords.
+- No functional change to the crypto — pure distribution polish.
+
 ## v0.0.6
 
 - **Cold storage to USB** — `Mausoleum.detect_removable_mounts()` finds USB mounts

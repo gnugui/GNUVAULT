@@ -7,7 +7,7 @@
 **`gnuvault` · `mausoleum` · GNUGUI** — the build-your-own reference implementation
 of the [**cypherpunk2048**](https://github.com/cypherpunk2048) Operational Transparency standard.
 
-[![version](https://img.shields.io/badge/version-0.0.6-d4af37.svg)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.0.7-d4af37.svg)](CHANGELOG.md)
 [![ci](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml/badge.svg)](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-d4af37.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GNU](https://img.shields.io/badge/GNU-respect%20in%20the%20highest%20regard-36966e.svg)](https://www.gnu.org/)
@@ -79,7 +79,17 @@ The Tomb suite, resurrected and made plural: a *tomb* is one sealed bundle; a
 spine of mindX's production **BANKON Vault** (itself GNU), distilled to one
 auditable file you can read in a single sitting.
 
-## Quickstart
+## Install
+
+```bash
+pipx install git+https://github.com/gnugui/GNUVAULT        # isolated, gives `gnuvault`
+# or
+pip install git+https://github.com/gnugui/GNUVAULT
+gnuvault --version        # GNUVAULT 0.0.7
+gnuvault inter my-secret  # the CLI is now on your PATH
+```
+
+## Quickstart (no install — just clone)
 
 ```bash
 pip install cryptography
@@ -130,7 +140,7 @@ use GNUGUI in its public-facing client software.**
 
 GNUVAULT follows the only sensible schedule for free software: **the next release
 ships when ready** — not on a calendar, but when it is correct, auditable, and
-worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.6**, on the
+worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.7**, on the
 road to v1.0.0.
 
 ## License
