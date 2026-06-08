@@ -82,10 +82,12 @@ class GnuGui:
                                   highlightthickness=0, bd=0, font=("DejaVu Sans Mono", 11))
         self.listbox.pack(fill="x", padx=16, pady=12)
         for label, cmd in [("＋ inter (new tomb)", self._inter), ("🔓 exhume (open)", self._exhume),
-                           ("🔑 export key → sovereign", self._export), ("↻ refresh", self._refresh)]:
+                           ("🔁 rekey", self._rekey), ("🔑 export key → sovereign", self._export),
+                           ("💾 backup → …", self._backup), ("📥 import tomb", self._import),
+                           ("🗑 forget", self._forget), ("↻ refresh", self._refresh)]:
             tk.Button(side, text=label, command=cmd, bg=GOLD, fg=GROUND, bd=0,
                       activebackground=GREEN, font=("DejaVu Sans", 11, "bold")).pack(
-                          fill="x", padx=16, pady=3)
+                          fill="x", padx=16, pady=2)
         tk.Label(side, text=SLOGANS[2], fg=GOLD, bg=GROUND, wraplength=270,
                  font=("DejaVu Sans", 10, "italic")).pack(side="bottom", pady=10)
         self._refresh()
@@ -182,6 +184,56 @@ class GnuGui:
                                 "Hold it, or build your own.")
         except Exception:
             messagebox.showerror("export failed", "wrong passphrase (failed closed)")
+
+    def _rekey(self) -> None:
+        from tkinter import messagebox
+        name = self._selected()
+        if not name:
+            return
+        old = self._prompt(f"current passphrase for {name}", secret=True)
+        new = self._prompt("new passphrase", secret=True)
+        if not old or not new:
+            return
+        try:
+            self.m.rekey(name, old, new)
+            messagebox.showinfo(name, "rekeyed — passphrase rotated in place")
+        except Exception:
+            messagebox.showerror("rekey failed", "wrong current passphrase (failed closed)")
+
+    def _backup(self) -> None:
+        from tkinter import messagebox, filedialog
+        dest = filedialog.askdirectory(parent=self.root, title="Back up tombs to… (e.g. a USB mount)")
+        if not dest:
+            return
+        try:
+            written = self.m.backup(dest, verify=True)
+            messagebox.showinfo("backup", f"backed up {len(written)} tomb(s), sha256-verified →\n{dest}")
+        except Exception as e:
+            messagebox.showerror("backup failed", str(e))
+
+    def _import(self) -> None:
+        from tkinter import messagebox, filedialog
+        path = filedialog.askopenfilename(parent=self.root, title="Import a tomb (*.tomb.json)",
+                                          filetypes=[("GNUVAULT tomb", "*.tomb.json"), ("All", "*")])
+        if not path:
+            return
+        try:
+            info = self.m.import_tomb(path)
+            self._refresh()
+            messagebox.showinfo("import", f"imported ⚰ {info.name}")
+        except Exception as e:
+            messagebox.showerror("import failed", str(e))
+
+    def _forget(self) -> None:
+        from tkinter import messagebox
+        name = self._selected()
+        if not name:
+            return
+        if not messagebox.askyesno("forget", f"Remove tomb ⚰ {name} from the mausoleum?\n"
+                                   "(external copies/backups are not shredded)"):
+            return
+        self.m.forget(name)
+        self._refresh()
 
     def run(self) -> None:
         self.root.mainloop()

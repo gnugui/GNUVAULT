@@ -7,7 +7,7 @@
 **`gnuvault` · `mausoleum` · GNUGUI** — the build-your-own reference implementation
 of the [**cypherpunk2048**](https://github.com/cypherpunk2048) Operational Transparency standard.
 
-[![version](https://img.shields.io/badge/version-0.0.8-d4af37.svg)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.0.9-d4af37.svg)](CHANGELOG.md)
 [![ci](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml/badge.svg)](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-d4af37.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GNU](https://img.shields.io/badge/GNU-respect%20in%20the%20highest%20regard-36966e.svg)](https://www.gnu.org/)
@@ -140,7 +140,7 @@ use GNUGUI in its public-facing client software.**
 
 GNUVAULT follows the only sensible schedule for free software: **the next release
 ships when ready** — not on a calendar, but when it is correct, auditable, and
-worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.8**, on the
+worth your time. See the [CHANGELOG](CHANGELOG.md). Current: **v0.0.9**, on the
 road to v1.0.0.
 
 ## License

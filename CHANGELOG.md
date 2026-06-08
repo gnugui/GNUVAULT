@@ -3,6 +3,16 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.0.9
+
+- **GNUGUI client hardening** — full CLI parity in the GUI: `inter`, `exhume`,
+  **rekey**, `export`, **backup** (verified, with a directory picker), **import**
+  (file picker), **forget** (with confirmation), refresh — each with fail-closed
+  error dialogs. This is the BANKON-public-client core.
+- Test covers the GUI module headless (import + clean exit + all actions present).
+  Visual rendering is exercised manually / behind a display, not in CI — stated
+  plainly. Test suite grows to 21.
+
 ## v0.0.8
 
 - **[`SECURITY.md`](SECURITY.md)** — full threat model: the cryptography, what

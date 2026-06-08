@@ -251,6 +251,14 @@ def test_wipe_zeroes_bytearray():
     wipe(b"immutable")          # must not raise on immutables
 
 
+def test_gnugui_headless_and_actions_present():
+    import gnugui
+    assert gnugui.main(["--headless"]) == 0     # no display → clean exit
+    for meth in ("_inter", "_exhume", "_rekey", "_export", "_backup",
+                 "_import", "_forget", "_refresh", "_draw"):
+        assert hasattr(gnugui.GnuGui, meth), f"GnuGui missing {meth}"
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
