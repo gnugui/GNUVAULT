@@ -7,7 +7,8 @@
 **`gnuvault` · `mausoleum` · GNUGUI** — the build-your-own reference implementation
 of the [**cypherpunk2048**](https://github.com/cypherpunk2048) Operational Transparency standard.
 
-[![version](https://img.shields.io/badge/version-0.0.2-d4af37.svg)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.0.3-d4af37.svg)](CHANGELOG.md)
+[![ci](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml/badge.svg)](https://github.com/gnugui/GNUVAULT/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-d4af37.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GNU](https://img.shields.io/badge/GNU-respect%20in%20the%20highest%20regard-36966e.svg)](https://www.gnu.org/)
 [![cypherpunk2048](https://img.shields.io/badge/standard-cypherpunk2048-0a0a12.svg)](https://github.com/cypherpunk2048)
@@ -69,6 +70,7 @@ population. GNUVAULT carries that posture to the vault.
 |---|---|
 | [`gnuvault.py`](gnuvault.py) | one **tomb** — `scrypt` + `AES-256-GCM`; `seal` · `open` · **`extract_key`** |
 | [`mausoleum.py`](mausoleum.py) | the **Mausoleum** — many tombs; `inter` · `exhume` · **`export_key`** (the sovereign exit) · `backup` to USB |
+| [`overseer.py`](overseer.py) | **who may derive the key** — `Passphrase` / `Keyfile` / `WalletSignature` overseers (custody by passphrase, key file, or a wallet signature) |
 | [`gnugui.py`](gnugui.py) | **GNUGUI** — the public-facing client; a pseudo-3D, cypherpunk2048 vault view in pure-stdlib Tkinter |
 
 The Tomb suite, resurrected and made plural: a *tomb* is one sealed bundle; a

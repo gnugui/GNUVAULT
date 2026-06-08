@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gnuvault"
-version = "0.0.2"
+version = "0.0.3"
 description = "GNUVAULT — a transparent, client-side vault suite (gnuvault + mausoleum + GNUGUI). The build-your-own example for the cypherpunk2048 Operational Transparency standard."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -24,4 +24,4 @@ gnuvault = "cli:main"
 gnugui = "gnugui:main"
 
 [tool.setuptools]
-py-modules = ["gnuvault", "mausoleum", "gnugui", "cli", "test_gnuvault"]
+py-modules = ["gnuvault", "overseer", "mausoleum", "gnugui", "cli", "test_gnuvault"]

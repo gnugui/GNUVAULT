@@ -71,17 +71,23 @@ def _b64d(s: str) -> bytes:
     return base64.b64decode(s.encode("ascii"))
 
 
-def derive_key(passphrase: str, salt: bytes) -> bytes:
-    """scrypt KDF — passphrase + salt → 32-byte AES key. Pure, auditable.
+def derive_key_material(material: bytes, salt: bytes) -> bytes:
+    """scrypt KDF — keying material + salt → 32-byte AES key. Pure, auditable.
 
-    ``maxmem`` is set explicitly to admit the chosen work factor (scrypt needs
-    ~128·N·r bytes; the OpenSSL default cap of 32 MiB is below N=2^15). Raising
-    it is a transparent, local decision — your machine, your call."""
+    ``material`` is whatever an Overseer produces: a passphrase's bytes, a key
+    file, or SHA-256(wallet signature). ``maxmem`` is set explicitly to admit
+    the chosen work factor (scrypt needs ~128·N·r bytes; the OpenSSL default cap
+    of 32 MiB is below N=2^15). Raising it is a transparent, local decision."""
     return hashlib.scrypt(
-        passphrase.encode("utf-8"), salt=salt,
+        material, salt=salt,
         n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P, dklen=_KEY_LEN,
         maxmem=132 * _SCRYPT_N * _SCRYPT_R + (1 << 20),
     )
+
+
+def derive_key(passphrase: str, salt: bytes) -> bytes:
+    """scrypt KDF from a passphrase (a PassphraseOverseer in one call)."""
+    return derive_key_material(passphrase.encode("utf-8"), salt)
 
 
 @dataclass(frozen=True)
@@ -118,37 +124,59 @@ class GnuVault:
 
     KDF_ID = f"scrypt(N={_SCRYPT_N},r={_SCRYPT_R},p={_SCRYPT_P})+AES-256-GCM"
 
-    def seal(self, secret: str | bytes, passphrase: str) -> SealedBundle:
-        """Encrypt ``secret`` under ``passphrase``. Returns the full bundle."""
+    # ── Overseer-based API (passphrase / keyfile / wallet-signature) ──
+    def seal_with(self, overseer, secret: str | bytes) -> SealedBundle:
+        """Seal ``secret`` under any Overseer's keying material."""
         data = secret.encode("utf-8") if isinstance(secret, str) else secret
         salt = os.urandom(_SALT_LEN)
         nonce = os.urandom(_NONCE_LEN)
-        key = derive_key(passphrase, salt)
+        key = derive_key_material(overseer.material(), salt)
         ct = AESGCM(key).encrypt(nonce, data, associated_data=self.KDF_ID.encode())
-        return SealedBundle(kdf=self.KDF_ID, salt=_b64e(salt),
-                            nonce=_b64e(nonce), ct=_b64e(ct))
+        return SealedBundle(kdf=self.KDF_ID, salt=_b64e(salt), nonce=_b64e(nonce), ct=_b64e(ct))
+
+    def open_with(self, overseer, bundle: SealedBundle) -> bytes:
+        """Open a bundle with an Overseer. Fails closed on the wrong custodian."""
+        key = derive_key_material(overseer.material(), _b64d(bundle.salt))
+        return AESGCM(key).decrypt(_b64d(bundle.nonce), _b64d(bundle.ct),
+                                   associated_data=bundle.kdf.encode())
+
+    def extract_key_with(self, overseer, bundle: SealedBundle) -> bytes:
+        """Extract the 32-byte key via an Overseer → sovereign."""
+        return derive_key_material(overseer.material(), _b64d(bundle.salt))
+
+    def rekey_with(self, old_overseer, new_overseer, bundle: SealedBundle) -> SealedBundle:
+        """Rotate custody: open with the old Overseer, re-seal under the new one
+        (fresh salt + nonce). This is how you migrate a tomb from a passphrase to
+        a wallet signature, or from one key file to another — without ever
+        exposing the secret. Fails closed on the wrong old custodian."""
+        secret = self.open_with(old_overseer, bundle)
+        return self.seal_with(new_overseer, secret)
+
+    # ── Passphrase API (the common case; thin wrappers over the above) ──
+    def seal(self, secret: str | bytes, passphrase: str) -> SealedBundle:
+        """Encrypt ``secret`` under ``passphrase``. Returns the full bundle."""
+        from overseer import PassphraseOverseer
+        return self.seal_with(PassphraseOverseer(passphrase), secret)
 
     def open(self, bundle: SealedBundle, passphrase: str) -> bytes:
         """Decrypt a bundle. Raises on a wrong passphrase (auth failure)."""
-        key = derive_key(passphrase, _b64d(bundle.salt))
-        return AESGCM(key).decrypt(_b64d(bundle.nonce), _b64d(bundle.ct),
-                                   associated_data=bundle.kdf.encode())
+        from overseer import PassphraseOverseer
+        return self.open_with(PassphraseOverseer(passphrase), bundle)
 
     def extract_key(self, bundle: SealedBundle, passphrase: str) -> bytes:
         """Pull the derived 32-byte key OUT of the running system.
 
         Once you hold these bytes, the key is sovereign: portable, off-host,
-        yours. This method exists precisely so the vault can never hold you
-        captive — extraction is a guaranteed exit, not a backdoor."""
-        return derive_key(passphrase, _b64d(bundle.salt))
+        yours. Extraction is a guaranteed exit, not a backdoor."""
+        from overseer import PassphraseOverseer
+        return self.extract_key_with(PassphraseOverseer(passphrase), bundle)
 
     def rekey(self, bundle: SealedBundle, old_passphrase: str, new_passphrase: str) -> SealedBundle:
-        """Rotate the passphrase: open with the old, re-seal under the new with
-        a fresh salt + nonce. The plaintext is never written to disk and the new
-        bundle shares nothing derivable with the old. Fails closed on a wrong
-        old passphrase (you cannot rekey what you cannot open)."""
-        secret = self.open(bundle, old_passphrase)
-        return self.seal(secret, new_passphrase)
+        """Rotate the passphrase: open with the old, re-seal under the new with a
+        fresh salt + nonce. Fails closed on a wrong old passphrase."""
+        from overseer import PassphraseOverseer
+        return self.rekey_with(PassphraseOverseer(old_passphrase),
+                               PassphraseOverseer(new_passphrase), bundle)
 
 
 def _selftest() -> bool:

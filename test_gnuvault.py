@@ -15,6 +15,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gnuvault import GnuVault, SealedBundle              # noqa: E402
 from mausoleum import Mausoleum                          # noqa: E402
+from overseer import (PassphraseOverseer, KeyfileOverseer,   # noqa: E402
+                      WalletSignatureOverseer)
 
 
 def test_seal_open_roundtrip():
@@ -75,6 +77,48 @@ def test_no_overwrite_without_forget():
             m.inter("dup", "second", "pw"); raise AssertionError("overwrote a tomb")
         except FileExistsError:
             pass
+
+
+def test_keyfile_overseer_roundtrip():
+    with tempfile.TemporaryDirectory() as d:
+        kf = Path(d) / "master.key"
+        kf.write_bytes(b"\x01" * 64)
+        v = GnuVault()
+        b = v.seal_with(KeyfileOverseer(kf), "keyfile secret")
+        assert v.open_with(KeyfileOverseer(kf), b).decode() == "keyfile secret"
+        # A different key file must fail closed.
+        kf2 = Path(d) / "other.key"; kf2.write_bytes(b"\x02" * 64)
+        try:
+            v.open_with(KeyfileOverseer(kf2), b); raise AssertionError("wrong keyfile opened")
+        except Exception as e:
+            if isinstance(e, AssertionError):
+                raise
+
+
+def test_wallet_signature_overseer_is_deterministic():
+    v = GnuVault()
+    sig = "0x" + "ab" * 65                       # a stand-in 65-byte signature
+    b = v.seal_with(WalletSignatureOverseer(sig), "wallet secret")
+    # same signature reproduces custody (no signature stored)
+    assert v.open_with(WalletSignatureOverseer(sig), b).decode() == "wallet secret"
+    try:
+        v.open_with(WalletSignatureOverseer("0x" + "cd" * 65), b); raise AssertionError("wrong sig opened")
+    except Exception as e:
+        if isinstance(e, AssertionError):
+            raise
+
+
+def test_rekey_passphrase_to_wallet():
+    v = GnuVault()
+    b1 = v.seal_with(PassphraseOverseer("human-pw"), "migrating secret")
+    sig = "0x" + "11" * 65
+    b2 = v.rekey_with(PassphraseOverseer("human-pw"), WalletSignatureOverseer(sig), b1)
+    assert v.open_with(WalletSignatureOverseer(sig), b2).decode() == "migrating secret"
+    try:
+        v.open_with(PassphraseOverseer("human-pw"), b2); raise AssertionError("old custodian still worked")
+    except Exception as e:
+        if isinstance(e, AssertionError):
+            raise
 
 
 def _run_standalone() -> int:
