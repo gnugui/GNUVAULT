@@ -30,7 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mausoleum import Mausoleum  # noqa: E402
 
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 
 
 def _m(args) -> Mausoleum:
@@ -106,8 +106,30 @@ def cmd_rekey(args) -> int:
 
 
 def cmd_backup(args) -> int:
-    written = _m(args).backup(args.dest)
-    print(f"backed up {len(written)} tomb(s) → {args.dest}")
+    written = _m(args).backup(args.dest, verify=not args.no_verify)
+    print(f"backed up {len(written)} tomb(s) → {args.dest}"
+          + ("" if args.no_verify else " (sha256-verified)"))
+    return 0
+
+
+def cmd_usb(args) -> int:
+    mounts = Mausoleum.detect_removable_mounts()
+    print("\n".join(mounts) if mounts else "(no removable mounts detected)")
+    return 0
+
+
+def cmd_verify(args) -> int:
+    res = _m(args).verify_backup(args.dest)
+    ok = sum(1 for v in res.values() if v)
+    for name, good in sorted(res.items()):
+        print(f"  {'OK  ' if good else 'FAIL'} {name}")
+    print(f"{ok}/{len(res)} verified")
+    return 0 if ok == len(res) else 1
+
+
+def cmd_restore(args) -> int:
+    names = _m(args).restore_from(args.src)
+    print(f"restored {len(names)} tomb(s): {', '.join(names) if names else '(none new)'}")
     return 0
 
 
@@ -146,7 +168,10 @@ def build_parser() -> argparse.ArgumentParser:
         sp = sub.add_parser(name); sp.add_argument("name"); sp.set_defaults(fn=fn)
     sp = sub.add_parser("export"); sp.add_argument("name"); sp.add_argument("--b64", action="store_true"); sp.add_argument("--pem", action="store_true"); sp.set_defaults(fn=cmd_export)
     sp = sub.add_parser("airgap"); sp.add_argument("what", choices=["challenge", "keygen", "sign"]); sp.add_argument("--nonce", default=""); sp.set_defaults(fn=cmd_airgap)
-    sp = sub.add_parser("backup"); sp.add_argument("dest"); sp.set_defaults(fn=cmd_backup)
+    sp = sub.add_parser("backup"); sp.add_argument("dest"); sp.add_argument("--no-verify", action="store_true"); sp.set_defaults(fn=cmd_backup)
+    sp = sub.add_parser("verify"); sp.add_argument("dest"); sp.set_defaults(fn=cmd_verify)
+    sp = sub.add_parser("restore"); sp.add_argument("src"); sp.set_defaults(fn=cmd_restore)
+    sub.add_parser("usb").set_defaults(fn=cmd_usb)
     sp = sub.add_parser("import"); sp.add_argument("path"); sp.set_defaults(fn=cmd_import)
     sub.add_parser("gui").set_defaults(fn=cmd_gui)
     sub.add_parser("selftest").set_defaults(fn=cmd_selftest)

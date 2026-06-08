@@ -191,6 +191,29 @@ def test_export_keystore_is_portable():
         assert len(key_from_pem(pem)) == 32
 
 
+def test_backup_verify_and_restore():
+    with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as usb:
+        m = Mausoleum(d)
+        m.inter("cold-a", "secret a", "pw")
+        m.inter("cold-b", "secret b", "pw")
+        written = m.backup(usb, verify=True)          # raises if a copy mismatches
+        assert len(written) == 2
+        assert all(m.verify_backup(usb).values())
+        # corrupt a backup → verify must catch it
+        bad = sorted(Path(usb).glob("*.tomb.json"))[0]
+        bad.write_text(bad.read_text() + " ")
+        assert not all(m.verify_backup(usb).values())
+        # restore into a fresh mausoleum from cold storage
+        with tempfile.TemporaryDirectory() as d2:
+            m2 = Mausoleum(d2)
+            assert sorted(m2.restore_from(usb)) == ["cold-a", "cold-b"]
+            assert m2.exhume("cold-b", "pw").decode() == "secret b"
+
+
+def test_detect_removable_mounts_is_a_list():
+    assert isinstance(Mausoleum.detect_removable_mounts(), list)   # never raises
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

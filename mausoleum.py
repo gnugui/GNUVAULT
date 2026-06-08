@@ -192,17 +192,73 @@ class Mausoleum:
             return True
         return False
 
-    def backup(self, dest: str | Path) -> List[str]:
-        """Copy every tomb to ``dest`` (e.g. a USB mount — the Tomb cold-storage
-        pattern from parsec-wallet). Returns the paths written."""
+    @staticmethod
+    def detect_removable_mounts() -> List[str]:
+        """Find likely removable / USB mount points (the Tomb cold-storage
+        pattern). Cross-platform best-effort; returns writable directories."""
+        import getpass
+        user = ""
+        try:
+            user = getpass.getuser()
+        except Exception:
+            user = os.environ.get("USER", "")
+        candidates = [
+            f"/media/{user}", "/media", "/mnt",
+            f"/run/media/{user}", "/Volumes",   # Linux + macOS
+        ]
+        out: List[str] = []
+        for c in candidates:
+            base = Path(c)
+            if not base.is_dir():
+                continue
+            for child in sorted(base.iterdir()) if base.name in ("media", user or "x", "Volumes") else []:
+                if child.is_dir() and os.access(child, os.W_OK):
+                    out.append(str(child))
+            if os.access(base, os.W_OK) and base.name in ("mnt",):
+                out.append(str(base))
+        return out
+
+    def backup(self, dest: str | Path, *, verify: bool = True) -> List[str]:
+        """Copy every tomb to ``dest`` (e.g. a USB mount). With ``verify`` (default),
+        each copy is read back and its SHA-256 compared to the source — a backup
+        you have not verified is a hope, not a backup. Raises on mismatch."""
+        import hashlib as _h
         dest = Path(os.path.expanduser(str(dest)))
         dest.mkdir(parents=True, exist_ok=True)
         written: List[str] = []
         for p in self.root.glob(f"*{_TOMB_SUFFIX}"):
+            data = p.read_bytes()
             target = dest / p.name
-            target.write_bytes(p.read_bytes())
+            target.write_bytes(data)
+            if verify and _h.sha256(target.read_bytes()).hexdigest() != _h.sha256(data).hexdigest():
+                raise IOError(f"backup verification FAILED for {target}")
             written.append(str(target))
         return written
+
+    def verify_backup(self, dest: str | Path) -> Dict[str, bool]:
+        """Compare each tomb in the mausoleum against its copy in ``dest`` by
+        SHA-256. Returns {tomb_filename: matches}. Missing copies → False."""
+        import hashlib as _h
+        dest = Path(os.path.expanduser(str(dest)))
+        out: Dict[str, bool] = {}
+        for p in self.root.glob(f"*{_TOMB_SUFFIX}"):
+            t = dest / p.name
+            out[p.name] = bool(t.exists()
+                               and _h.sha256(t.read_bytes()).hexdigest()
+                               == _h.sha256(p.read_bytes()).hexdigest())
+        return out
+
+    def restore_from(self, src: str | Path) -> List[str]:
+        """Restore tombs from a cold-storage directory into this mausoleum
+        (copies any ``*.tomb.json`` not already present). Returns names restored."""
+        src = Path(os.path.expanduser(str(src)))
+        restored: List[str] = []
+        for p in sorted(src.glob(f"*{_TOMB_SUFFIX}")):
+            target = self.root / p.name
+            if not target.exists():
+                target.write_bytes(p.read_bytes())
+                restored.append(p.name[: -len(_TOMB_SUFFIX)])
+        return restored
 
     def import_tomb(self, path: str | Path) -> TombInfo:
         """Bring an external tomb file into the mausoleum."""

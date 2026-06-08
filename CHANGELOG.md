@@ -3,6 +3,17 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.0.6
+
+- **Cold storage to USB** — `Mausoleum.detect_removable_mounts()` finds USB mounts
+  (Linux `/media`/`/run/media`/`/mnt`, macOS `/Volumes`); `backup()` now
+  **SHA-256-verifies** every copy by default (a backup you have not verified is a
+  hope, not a backup) and raises on mismatch; `verify_backup()` and
+  `restore_from()` round-trip cold storage. The tombs are already encrypted, so
+  the USB is cold storage as-is (an outer LUKS/Tomb layer is optional).
+- CLI: `gnuvault usb`, `backup [--no-verify]`, `verify <dest>`, `restore <src>`.
+- Test suite grows to 17 (verified backup, tamper detection, restore).
+
 ## v0.0.5
 
 - **Airgap custody** (`airgap.py`): sign a fixed public challenge on an offline
