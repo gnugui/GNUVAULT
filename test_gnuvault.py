@@ -259,6 +259,24 @@ def test_gnugui_headless_and_actions_present():
         assert hasattr(gnugui.GnuGui, meth), f"GnuGui missing {meth}"
 
 
+def test_full_lifecycle_integration():
+    with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as usb:
+        m = Mausoleum(d)
+        m.inter("acct", "lifecycle secret", "pw1")
+        assert m.exhume("acct", "pw1").decode() == "lifecycle secret"
+        m.rekey("acct", "pw1", "pw2")
+        assert m.exhume("acct", "pw2").decode() == "lifecycle secret"
+        assert len(m.export_key("acct", "pw2")) == 64
+        ks = m.export_keystore("acct", "pw2", "exp-pw")
+        assert GnuVault().open(SealedBundle.from_json(ks), "exp-pw").decode() == "lifecycle secret"
+        m.backup(usb, verify=True)
+        assert all(m.verify_backup(usb).values())
+        m.forget("acct")
+        assert not m.list_tombs()
+        assert sorted(m.restore_from(usb)) == ["acct"]
+        assert m.exhume("acct", "pw2").decode() == "lifecycle secret"   # full circle
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

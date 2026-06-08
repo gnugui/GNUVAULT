@@ -3,6 +3,18 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.1.0 — feature-complete beta
+
+- **API frozen for 0.x.** See [API.md](API.md): the public surfaces are stable;
+  a v0.1.0 build opens any tomb sealed by v0.0.1+ (legacy AAD fallback). The
+  `SealedBundle` JSON wire format is fixed for 0.x.
+- **Deprecation policy:** anything to be removed gets at least one minor release
+  of warning first. Internals (leading `_`) are not API.
+- **Full lifecycle integration test:** inter → exhume → rekey → export →
+  keystore → verified backup → forget → restore → open, end to end.
+- This is the **beta** gate on the road to v1.0.0 (self-audit + review).
+- Test suite at 22.
+
 ## v0.0.9
 
 - **GNUGUI client hardening** — full CLI parity in the GUI: `inter`, `exhume`,

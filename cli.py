@@ -30,7 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mausoleum import Mausoleum  # noqa: E402
 
-VERSION = "0.0.9"
+VERSION = "0.1.0"
 
 
 def _m(args) -> Mausoleum:
