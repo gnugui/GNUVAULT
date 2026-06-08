@@ -3,6 +3,18 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v1.0.0 — stable
+
+- **Documented self-audit** ([AUDIT.md](AUDIT.md)) — every threat-model claim
+  mapped to the test that proves it (22 tests, CI on 3.9/3.11/3.12). Honest that
+  it is a self-audit, **not** a paid third-party audit; independent review is
+  invited ([SECURITY.md](SECURITY.md)).
+- **Semantic-versioning stability guarantee** — no breaking change to the public
+  API ([API.md](API.md)) or the `SealedBundle` wire format without a major bump.
+- **Checksummed release artifacts** — `SHA256SUMS` published with the sdist +
+  wheel on the GitHub release; reproducible via `python -m build`.
+- The standard's reference vault is complete. *take it, own it, use it, share it.*
+
 ## v0.1.0 — feature-complete beta
 
 - **API frozen for 0.x.** See [API.md](API.md): the public surfaces are stable;

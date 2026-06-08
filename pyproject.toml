@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gnuvault"
-version = "0.1.0"
+version = "1.0.0"
 description = "GNUVAULT — a transparent, client-side vault suite (gnuvault + mausoleum + GNUGUI). The build-your-own example for the cypherpunk2048 Operational Transparency standard."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -15,7 +15,7 @@ authors = [{ name = "cypherpunk2048 / BANKON" }]
 keywords = ["vault", "cypherpunk2048", "operational-transparency", "tomb", "gnugui", "sovereign-key", "gpl", "encryption", "scrypt", "aes-gcm"]
 dependencies = ["cryptography>=41"]   # stdlib + one audited primitive set
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
