@@ -125,32 +125,44 @@ class GnuVault:
     KDF_ID = f"scrypt(N={_SCRYPT_N},r={_SCRYPT_R},p={_SCRYPT_P})+AES-256-GCM"
 
     # ── Overseer-based API (passphrase / keyfile / wallet-signature) ──
-    def seal_with(self, overseer, secret: str | bytes) -> SealedBundle:
-        """Seal ``secret`` under any Overseer's keying material."""
+    def _aad(self, bundle: Optional[SealedBundle], aad: Optional[bytes]) -> bytes:
+        """Resolve the AES-GCM associated data. ``aad`` (when given) binds the
+        ciphertext to a context the caller controls — e.g. the tomb's identity,
+        so a sealed bundle cannot be moved to a different tomb and opened. When
+        omitted it defaults to the KDF id (the v0.0.1–v0.0.3 behavior)."""
+        if aad is not None:
+            return aad
+        return (bundle.kdf if bundle is not None else self.KDF_ID).encode("utf-8")
+
+    def seal_with(self, overseer, secret: str | bytes, *, aad: Optional[bytes] = None) -> SealedBundle:
+        """Seal ``secret`` under any Overseer's keying material. ``aad`` binds the
+        ciphertext to a context (e.g. the tomb name) — authenticated, not secret."""
         data = secret.encode("utf-8") if isinstance(secret, str) else secret
         salt = os.urandom(_SALT_LEN)
         nonce = os.urandom(_NONCE_LEN)
         key = derive_key_material(overseer.material(), salt)
-        ct = AESGCM(key).encrypt(nonce, data, associated_data=self.KDF_ID.encode())
+        ct = AESGCM(key).encrypt(nonce, data, associated_data=self._aad(None, aad))
         return SealedBundle(kdf=self.KDF_ID, salt=_b64e(salt), nonce=_b64e(nonce), ct=_b64e(ct))
 
-    def open_with(self, overseer, bundle: SealedBundle) -> bytes:
-        """Open a bundle with an Overseer. Fails closed on the wrong custodian."""
+    def open_with(self, overseer, bundle: SealedBundle, *, aad: Optional[bytes] = None) -> bytes:
+        """Open a bundle with an Overseer. Fails closed on the wrong custodian
+        OR the wrong ``aad`` (context mismatch — e.g. a relocated tomb)."""
         key = derive_key_material(overseer.material(), _b64d(bundle.salt))
         return AESGCM(key).decrypt(_b64d(bundle.nonce), _b64d(bundle.ct),
-                                   associated_data=bundle.kdf.encode())
+                                   associated_data=self._aad(bundle, aad))
 
     def extract_key_with(self, overseer, bundle: SealedBundle) -> bytes:
         """Extract the 32-byte key via an Overseer → sovereign."""
         return derive_key_material(overseer.material(), _b64d(bundle.salt))
 
-    def rekey_with(self, old_overseer, new_overseer, bundle: SealedBundle) -> SealedBundle:
+    def rekey_with(self, old_overseer, new_overseer, bundle: SealedBundle, *,
+                   old_aad: Optional[bytes] = None, new_aad: Optional[bytes] = None) -> SealedBundle:
         """Rotate custody: open with the old Overseer, re-seal under the new one
-        (fresh salt + nonce). This is how you migrate a tomb from a passphrase to
-        a wallet signature, or from one key file to another — without ever
-        exposing the secret. Fails closed on the wrong old custodian."""
-        secret = self.open_with(old_overseer, bundle)
-        return self.seal_with(new_overseer, secret)
+        (fresh salt + nonce). Migrates a tomb from a passphrase to a wallet
+        signature, or from one key file to another, without exposing the secret.
+        Fails closed on the wrong old custodian."""
+        secret = self.open_with(old_overseer, bundle, aad=old_aad)
+        return self.seal_with(new_overseer, secret, aad=new_aad)
 
     # ── Passphrase API (the common case; thin wrappers over the above) ──
     def seal(self, secret: str | bytes, passphrase: str) -> SealedBundle:

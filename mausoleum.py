@@ -39,6 +39,7 @@ Security slogans this module keeps in mind:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -70,15 +71,40 @@ class TombInfo:
 class Mausoleum:
     """A directory of tombs. Each tomb is an independently-keyed GNUVAULT bundle."""
 
-    def __init__(self, root: str | Path = "~/.gnuvault/mausoleum") -> None:
+    def __init__(self, root: str | Path = "~/.gnuvault/mausoleum", *, opaque: bool = False) -> None:
+        """``opaque=True`` seals the *inventory*: tombs are stored under the
+        SHA-256 of their name, so a directory listing leaks no labels. You must
+        know a tomb's name to address it (the sealed-inventory property);
+        ``list_tombs()`` can then only report opaque hashes."""
         self.root = Path(os.path.expanduser(str(root)))
         self.root.mkdir(parents=True, exist_ok=True)
+        self.opaque = bool(opaque)
         self._v = GnuVault()
 
     # ── inventory ──────────────────────────────────────────────────
+    def _aad(self, name: str) -> bytes:
+        """AES-GCM associated data binding a bundle to THIS tomb's identity, so a
+        sealed file relocated to another tomb name fails to open (authenticated,
+        not secret). Computed from the name at seal AND open — never stored."""
+        return (self._v.KDF_ID + "|tomb:" + name).encode("utf-8")
+
     def _tomb_path(self, name: str) -> Path:
-        safe = "".join(c for c in name if c.isalnum() or c in "-_.").strip(".") or "tomb"
-        return self.root / f"{safe}{_TOMB_SUFFIX}"
+        if self.opaque:
+            stem = hashlib.sha256(("gnuvault-tomb:" + name).encode("utf-8")).hexdigest()[:32]
+        else:
+            stem = "".join(c for c in name if c.isalnum() or c in "-_.").strip(".") or "tomb"
+        return self.root / f"{stem}{_TOMB_SUFFIX}"
+
+    def _open_secret(self, name: str, passphrase: str) -> bytes:
+        """Open a tomb, binding AAD to the name; fall back to the legacy
+        (KDF-id) AAD for tombs sealed before v0.0.4."""
+        from overseer import PassphraseOverseer
+        ov = PassphraseOverseer(passphrase)
+        bundle = self._load(name)
+        try:
+            return self._v.open_with(ov, bundle, aad=self._aad(name))
+        except Exception:
+            return self._v.open_with(ov, bundle, aad=None)  # legacy pre-v0.0.4
 
     def list_tombs(self) -> List[TombInfo]:
         out: List[TombInfo] = []
@@ -97,10 +123,11 @@ class Mausoleum:
     # ── inter / exhume (seal / open) ───────────────────────────────
     def inter(self, name: str, secret: str | bytes, passphrase: str) -> TombInfo:
         """Seal ``secret`` into a new tomb named ``name``. Refuses to overwrite."""
+        from overseer import PassphraseOverseer
         path = self._tomb_path(name)
         if path.exists():
             raise FileExistsError(f"tomb already exists: {path} (forget it first)")
-        bundle = self._v.seal(secret, passphrase)
+        bundle = self._v.seal_with(PassphraseOverseer(passphrase), secret, aad=self._aad(name))
         envelope = json.loads(bundle.to_json())
         envelope["_sealed_at"] = time.time()
         # Atomic write (BANKON discipline): temp + os.replace.
@@ -111,8 +138,9 @@ class Mausoleum:
                         bytes=path.stat().st_size, sealed_at=envelope["_sealed_at"])
 
     def exhume(self, name: str, passphrase: str) -> bytes:
-        """Open a tomb and return its secret. Wrong passphrase fails closed."""
-        return self._v.open(self._load(name), passphrase)
+        """Open a tomb and return its secret. Wrong passphrase (or a relocated
+        tomb whose AAD no longer matches its name) fails closed."""
+        return self._open_secret(name, passphrase)
 
     # ── the exit: extraction → sovereignty ─────────────────────────
     def extract_key(self, name: str, passphrase: str) -> bytes:
@@ -132,9 +160,10 @@ class Mausoleum:
     def rekey(self, name: str, old_passphrase: str, new_passphrase: str) -> TombInfo:
         """Rotate a tomb's passphrase in place (atomic). Fails closed on a wrong
         old passphrase. The secret is never written to disk in the clear."""
+        from overseer import PassphraseOverseer
         path = self._tomb_path(name)
-        bundle = self._load(name)
-        new_bundle = self._v.rekey(bundle, old_passphrase, new_passphrase)
+        secret = self._open_secret(name, old_passphrase)  # name-bound, legacy fallback
+        new_bundle = self._v.seal_with(PassphraseOverseer(new_passphrase), secret, aad=self._aad(name))
         envelope = json.loads(new_bundle.to_json())
         envelope["_sealed_at"] = time.time()
         tmp = path.with_suffix(path.suffix + ".tmp")

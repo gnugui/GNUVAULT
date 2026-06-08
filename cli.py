@@ -30,11 +30,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mausoleum import Mausoleum  # noqa: E402
 
-VERSION = "0.0.2"
+VERSION = "0.0.4"
 
 
 def _m(args) -> Mausoleum:
-    return Mausoleum(args.root)
+    return Mausoleum(args.root, opaque=getattr(args, "opaque", False))
 
 
 def cmd_list(args) -> int:
@@ -125,6 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="gnuvault", description="GNUVAULT — a transparent client-side vault.")
     p.add_argument("--version", action="version", version=f"GNUVAULT {VERSION}")
     p.add_argument("--root", default="~/.gnuvault/mausoleum", help="mausoleum directory")
+    p.add_argument("--opaque", action="store_true", help="sealed inventory: store tombs under hashed filenames")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list").set_defaults(fn=cmd_list)
     for name, fn in [("inter", cmd_inter), ("exhume", cmd_exhume), ("rekey", cmd_rekey), ("forget", cmd_forget)]:

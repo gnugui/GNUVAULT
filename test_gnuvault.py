@@ -121,6 +121,41 @@ def test_rekey_passphrase_to_wallet():
             raise
 
 
+def test_aad_binds_to_tomb_name():
+    import shutil
+    with tempfile.TemporaryDirectory() as d:
+        m = Mausoleum(d)
+        m.inter("alpha", "bound secret", "pw")
+        shutil.copy(m._tomb_path("alpha"), m._tomb_path("beta"))   # relocate the file
+        try:
+            m.exhume("beta", "pw"); raise AssertionError("relocated tomb opened (AAD not bound)")
+        except Exception as e:
+            if isinstance(e, AssertionError):
+                raise
+        assert m.exhume("alpha", "pw").decode() == "bound secret"  # original still opens
+
+
+def test_opaque_inventory_hides_labels():
+    with tempfile.TemporaryDirectory() as d:
+        m = Mausoleum(d, opaque=True)
+        m.inter("my-private-label", "s", "pw")
+        files = [p.name for p in Path(d).glob("*.tomb.json")]
+        assert files and all("my-private-label" not in f for f in files)
+        assert m.exhume("my-private-label", "pw").decode() == "s"
+
+
+def test_legacy_pre_v004_tomb_opens():
+    import json as _j, time as _t
+    with tempfile.TemporaryDirectory() as d:
+        m = Mausoleum(d)
+        b = GnuVault().seal("legacy secret", "pw")    # default (KDF-id) AAD, as pre-v0.0.4
+        env = _j.loads(b.to_json()); env["_sealed_at"] = _t.time()
+        m._tomb_path("legacy").write_text(_j.dumps(env))
+        assert m.exhume("legacy", "pw").decode() == "legacy secret"     # opens via fallback
+        m.rekey("legacy", "pw", "pw2")                                  # upgrades to name-bound AAD
+        assert m.exhume("legacy", "pw2").decode() == "legacy secret"
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

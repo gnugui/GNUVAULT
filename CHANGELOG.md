@@ -3,6 +3,19 @@
 All notable changes to GNUVAULT. GPL-3.0-or-later. In the highest regard for the
 [GNU Project](https://www.gnu.org/) and the [Free Software Foundation](https://www.fsf.org/).
 
+## v0.0.4
+
+- **AAD bound to tomb identity.** The Mausoleum now seals each tomb with AES-GCM
+  associated data derived from the tomb's *name* (`KDF_ID|tomb:<name>`), computed
+  at seal AND open and never stored. A sealed file relocated to a different tomb
+  name fails closed — closing a cross-tomb/relay gap. Tombs sealed before v0.0.4
+  still open (legacy KDF-id AAD fallback) and upgrade to name-binding on `rekey`.
+- **Sealed inventory** (`Mausoleum(..., opaque=True)` / `--opaque`). Tombs are
+  stored under the SHA-256 of their name, so a directory listing leaks no labels;
+  you must know a name to address it.
+- `GnuVault.seal_with`/`open_with`/`rekey_with` gain an `aad=` parameter.
+- Test suite grows to 12 (AAD binding, opaque inventory, legacy fallback).
+
 ## v0.0.3
 
 - **Pluggable Overseer protocol** (`overseer.py`) — *who is allowed to derive the
